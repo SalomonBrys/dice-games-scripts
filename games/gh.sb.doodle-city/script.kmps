@@ -1,0 +1,59 @@
+conf = config(
+    "Doodle City",
+    playerNumber: ConfEntry.Select(label: "Number of players", values: List(1, 2, 3, 4, 5, 6))
+)
+
+moveTo("rolls", params: Object(roll: 0))
+
+step("rolls"): { :roll, :?dice, :?selectedDie, :?selectedDice ->
+    dice = @it.or(): {
+        Object(
+            blue: PipsDie(6, backgroundColor: "5684B1"),
+            whites: List().apply(): {
+                repeat(conf.playerNumber + 1): {
+                    add(PipsDie(6))
+                }
+            }
+        )
+    }
+    rollNumber = roll + 1
+    title("Roll #`rollNumber`")
+
+    selectedDice = @it.?shallowCopy().or(): { List() }
+    if (selectedDie.isNotNil()): {
+        selectedDice << selectedDie
+        highlight(selectedDie)
+    }
+
+    display(dice.blue, dice.whites)
+    fade(selectedDice)
+
+    player = [[roll + selectedDice.size] % conf.playerNumber] + 1
+
+    if (selectedDice.size < conf.playerNumber): {
+        select(
+            description: "Player `player` selects a white die",
+            selectables: dice.whites.map(): { @0.id } - selectedDice,
+            step: "rolls",
+            params: Object(
+                :roll,
+                :dice,
+                :selectedDice
+            )
+        )
+    } else: {
+        action(description: "Finish", step: "end")
+        action(
+            description: "Next!",
+            step: "rolls",
+            params: Object(
+                roll: roll + 1
+            )
+        )
+    }
+}
+
+step("end"): {
+    title("The end!")
+    subtitle("Time to behold your new city!")
+}

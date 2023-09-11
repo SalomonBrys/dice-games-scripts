@@ -1,0 +1,208 @@
+expansions = Object().apply(): {
+    @on.selfSet("Base", Object(
+        isBox: true,
+        dice: List("base-a-x3-challenge-c-x2", "base-a-x3-challenge-c-x2", "base-a-x3-challenge-c-x2", "base-b")
+    ))
+    @on.selfSet("Challenge", Object(
+        isBox: true,
+        dice: List("challenge-a", "challenge-b", "base-a-x3-challenge-c-x2", "base-a-x3-challenge-c-x2")
+    ))
+    @on.selfSet("Underground", Object(
+        isBox: true,
+        dice: List("underground-a", "underground-b", "underground-c", "underground-d")
+    ))
+    @on.selfSet("Arcade: Galactic Invaders", Object(
+        dice: List("arcade-galactic-invaders")
+    ))
+    @on.selfSet("Arcade: Pluckman", Object(
+        dice: List("arcade-pluckman")
+    ))
+    @on.selfSet("Arcade: Rainbow", Object(
+        shortening: 1,
+        dice: List("arcade-rainbow")
+    ))
+    @on.selfSet("Arcade: Tetromino", Object(
+        dice: List("arcade-tetromino")
+    ))
+    @on.selfSet("Blue: Lake", Object(
+        shortening: 1,
+        dice: List("blue-lake-x2", "blue-lake-x2")
+    ))
+    @on.selfSet("Blue: River", Object(
+        shortening: 1,
+        dice: List("blue-river-x2", "blue-river-x2")
+    ))
+    @on.selfSet("Eldritch: Investigation", Object(
+        shortening: 1,
+        dice: List("eldritch-investigation")
+    ))
+    @on.selfSet("Eldritch: Portal", Object(
+        dice: List("eldritch-portal")
+    ))
+    @on.selfSet("Eldritch: Ritual", Object(
+        shortening: 1,
+        dice: List("eldritch-ritual")
+    ))
+    @on.selfSet("Eldritch: Tentacle", Object(
+        dice: List("eldritch-tentacle")
+    ))
+    @on.selfSet("Electricity: Power Grid", Object(
+        dice: List("electricity-power-grid-x2", "electricity-power-grid-x2")
+    ))
+    @on.selfSet("Electricity: Street Lamps", Object(
+        shortening: 1,
+        dice: List("electricity-street-lamps-x2", "electricity-street-lamps-x2")
+    ))
+    @on.selfSet("Engineer: Construction", Object(
+        dice: List("engineer-construction")
+    ))
+    @on.selfSet("Engineer: Renovation", Object(
+        dice: List("engineer-renovation")
+    ))
+    @on.selfSet("Engineer: Separation", Object(
+        dice: List("engineer-separation")
+    ))
+    @on.selfSet("Engineer: Special", Object(
+        dice: List("engineer-special")
+    ))
+    @on.selfSet("Futuristic: Alien Farmer", Object(
+        shortening: 1,
+        dice: List("futuristic-alien-farmer")
+    ))
+    @on.selfSet("Futuristic: City Builder", Object(
+        dice: List("futuristic-city-builder-a", "futuristic-city-builder-b")
+    ))
+    @on.selfSet("Futuristic: Superconnection", Object(
+        shortening: 1,
+        dice: List("futuristic-superconnection")
+    ))
+    @on.selfSet("Green: Forest", Object(
+        shortening: 1,
+        dice: List("green-forest-x2", "green-forest-x2")
+    ))
+    @on.selfSet("Green: Trail", Object(
+        shortening: 1,
+        dice: List("green-trail-x2", "green-trail-x2")
+    ))
+    @on.selfSet("Red: Lava", Object(
+        shortening: 1,
+        dice: List("red-lava-x2", "red-lava-x2")
+    ))
+    @on.selfSet("Red: Meteor", Object(
+        shortening: 1,
+        dice: List("red-meteor-a", "red-meteor-b")
+    ))
+    @on.selfSet("Sky: Airline", Object(
+        shortening: 1,
+        dice: List("sky-airline-a", "sky-airline-b")
+    ))
+    @on.selfSet("Sky: Weather", Object(
+        dice: List("sky-weather-x2", "sky-weather-x2")
+    ))
+    @on.selfSet("Yellow: Canyon", Object(
+        dice: List("yellow-canyon-x2", "yellow-canyon-x2")
+    ))
+    @on.selfSet("Yellow: Desert", Object(
+        shortening: 1,
+        dice: List("yellow-desert-a", "yellow-desert-b")
+    ))
+}
+
+setup = config(
+    "RailRoad Ink Setup",
+    box: ConfEntry.Select(label: "Box", values: List("Challenge", "Base"), default: "Challenge"),
+    sheet: ConfEntry.Select(label: "Sheet", values: List("Regular", "Giant", "Epic"), default: "Regular"),
+    underground: ConfEntry.Check(label: "With Underground")
+)
+
+active = List()
+if (!setup.underground): {
+    maxExpansions = if (setup.sheet == "Giant"): { 2 } else: { 1 }
+    expansionPlural = if (maxExpansions > 1): { "s" } else: { "" }
+
+    active = config(
+        "RailRoad Ink Expansions",
+        "`setup.sheet` board: max `maxExpansions` expansion`expansionPlural`",
+        active: ConfEntry.Checks(
+            max: maxExpansions,
+            values: expansions.@properties().filter(): { expansions.selfProperty(@0).?isBox.?not.or(): { true } }
+        )
+    ).active.map(): { expansions # @0 }
+}
+
+shortening = active.reduce(0): { @0 + @1.?shortening.or():{0} }
+
+rounds = switch(
+    case(setup.sheet == "Regular"): { 7 - shortening },
+    case(setup.sheet == "Giant"): { 
+        switch(
+            case(shortening == 2): { 7 },
+            case(shortening == 0): { 12 },
+            case(shortening == 1): { 9 },
+        )
+     }, // 9, 7
+    case(setup.sheet == "Epic"): { 10 - [shortening * 2] },
+)
+
+dice = [expansions # setup.box].dice
+if (setup.sheet == "Epic"): {
+    dice = @it + List("base-a-x3-challenge-c-x2", "base-a-x3-challenge-c-x2")
+}
+dice = @it + active.reduce(List()): { @0 + @1.dice }
+
+switch(
+    case(setup.underground && [setup.sheet == "Epic"]): { moveTo("underground-error") },
+    case(setup.underground): { moveTo("underground-rolls", params: Object(roll: 0)) },
+    else: { moveTo("rolls", params: Object(roll: 0)) }
+)
+
+step("rolls"): { :roll ->
+    rollNumber = roll + 1
+
+    title("Roll #`rollNumber` of `rounds`")
+
+    rollDice = dice.map(): { TTSDie("dice/`@0`.jpg") }
+    display(rollDice)
+
+    if (rollNumber == rounds): {
+        action(description: "End", step: "end")
+    } else: {
+        action(
+            description: "Next!",
+            step: "rolls",
+            params: Object(roll: roll + 1)
+        )
+    }
+}
+
+step("underground-error"): {
+    title("Impossible!")
+    subtitle("The underground mode is NOT compatible with the Epic board!")
+}
+
+step("underground-rolls"): { :roll ->
+    rollNumber = floor([roll / 2] + 1)
+    isSurface = [roll % 2] == 0
+    type = if (isSurface): { "Surface" } else: { "Underground" }
+
+    title("`type` roll #`rollNumber` of `rounds`")
+
+    rollDice = if (isSurface): { dice } else: { [expansions # "Underground"].dice }
+        .map(): { TTSDie("dice/`@0`.jpg") }
+    display(rollDice)
+
+    if ([roll + 1] == [rounds * 2]): {
+        action(description: "End", step: "end")
+    } else: {
+        action(
+            description: "Next!",
+            step: "underground-rolls",
+            params: Object(roll: roll + 1)
+        )
+    }
+}
+
+step("end"): {
+    title("The end!")
+    subtitle("Tchou tchou!")
+}

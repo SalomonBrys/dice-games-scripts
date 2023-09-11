@@ -1,0 +1,85 @@
+moveTo("rolls", params: Object(rollNumber: 1))
+
+@prototypes.Step.SuitDie = {
+    LetterDie(
+        "♥" # "FFABAB",
+        "♣" # "ABFFAB",
+        "♦" # "FFFF57",
+        "♠" # "57FFFF",
+        "✿" # "FF57FF",
+        "★" # "C9C9C9",
+        outline: true,
+        font: "LCTPicon-Bold",
+        scale: 1.1
+    )
+}
+
+@prototypes.Step.TenDie = {
+    NumberDie(
+        0, 9,
+        font: "LCTPicon-Bold"
+    )
+}
+
+@prototypes.List.diceIds = { map(): { @0.id } }
+
+step("rolls"): { :rollNumber, :?dice, :?selectedDie, :?selectedDice, ->
+    title("Roll `rollNumber`")
+
+    dice = @it.or(): {
+        Object(
+            numbers: List(
+                TenDie(),
+                TenDie(),
+                TenDie(),
+            ),
+            suits: List(
+                SuitDie(),
+                SuitDie(),
+                SuitDie(),
+            )
+        )
+    }
+
+    display(
+        dice.numbers,
+        dice.suits
+    )
+
+    selectedDice = @it.?shallowCopy().or(): { Object() }
+    if (selectedDie.isNotNil()): {
+        if (dice.numbers.diceIds().contains(selectedDie)): { selectedDice.number = selectedDie }
+        if (dice.suits.diceIds().contains(selectedDie)): { selectedDice.suit = selectedDie }
+    }
+    fade(List(selectedDice.??number, selectedDice.??suit))
+
+    if (isDef(selectedDice.??number) && isDef(selectedDice.??suit)): {
+        action(description: "Finish", step: "end")
+        action(
+            description: "Continue!",
+            step: "rolls",
+            params: Object(
+                rollNumber: rollNumber + 1
+            )
+        )
+    } else: {
+        selectables = List()
+        if (isNotDef(selectedDice.??number)): { selectables.addAll(dice.numbers.diceIds()) }
+        if (isNotDef(selectedDice.??suit)): { selectables.addAll(dice.suits.diceIds()) }
+        select(
+            description: "Current Player selects a number die & a suit die.",
+            :selectables,
+            step: "rolls",
+            params: Object(
+                :rollNumber,
+                :dice,
+                :selectedDice
+            )
+        )
+    }
+}
+
+step("end"): {
+    title("The end!")
+    subtitle("Time to cash out these expeditions!")
+}

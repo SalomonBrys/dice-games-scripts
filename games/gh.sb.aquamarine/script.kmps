@@ -1,0 +1,56 @@
+nth = { n ->
+    switch(
+        case(n == 1): { "1rst" },
+        case(n == 2): { "2nd" },
+        case(n == 3): { "3rd" },
+        else: { "`n`th" }
+    )
+}
+
+step("start"): {
+    title("Starting time of day")
+    die = NumberDie(6, textColor: "FFFFFF", backgroundColor: "308786")
+    display(die)
+    startingTime = [[die.value * 4] + 6] % 24
+    action(description: "Start diving!", step: "rolls", params: Object(roll: 0, :startingTime))
+}
+
+step("rolls"): { :roll, :startingTime ->
+    rollNumber = roll + 1
+    title("Exploration `rollNumber`")
+
+    currentTime = [startingTime + roll] % 24
+    light = nil
+    hourNumber = nil
+    if ([currentTime >= 6] && [currentTime <= 17]): {
+        light = "day"
+        hourNumber = nth(currentTime - 5)
+    } else: {
+        light = "night"
+        hourNumber = nth(if (currentTime > 17): { currentTime - 17 } else: { currentTime + 7 })
+    }
+    subtitle("It is `currentTime`:00, `hourNumber` hour of the `light`")
+
+    display(
+        NumberDie(6, textColor: "FFFFFF", backgroundColor: "308786"),
+        NumberDie(6, textColor: "FFFFFF", backgroundColor: "308786")
+    )
+
+    if (rollNumber == 24): {
+        action(description: "End", step: "end")
+    } else: {
+        action(
+            description: "Next!",
+            step: "rolls",
+            params: Object(
+                roll: roll + 1,
+                :startingTime
+            )
+        )
+    }
+}
+
+step("end"): {
+    title("The end!")
+    subtitle("Time to reflect on these amazing dives!")
+}

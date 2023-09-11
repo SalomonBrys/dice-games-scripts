@@ -1,0 +1,26 @@
+moveTo("rolls", params: Object(rollNumber: 1))
+
+step("rolls"): { :rollNumber ->
+    title("Day `rollNumber`")
+
+    display(
+        NumberDie(6, textColor: "F3E7D3", backgroundColor: "B98C6C"),
+        NumberDie(6, textColor: "F3E7D3", backgroundColor: "B98C6C"),
+        NumberDie(6, textColor: "F3E7D3", backgroundColor: "B98C6C")
+    )
+
+    action(description: "Finish", step: "end")
+    action(
+        description: "Continue!",
+        step: "rolls",
+        params: Object(
+            rollNumber: rollNumber + 1
+        )
+    )
+}
+
+step("end"): {
+    title("The end!")
+
+    subtitle("Time to reflect on this incredible voyage!")
+}
